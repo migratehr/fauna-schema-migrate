@@ -1,0 +1,6 @@
+services:
+  fauna:
+    image: fauna/faunadb:latest
+    container_name: fsm_fauna
+    ports:
+      - 8445:8443

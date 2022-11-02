@@ -149,6 +149,9 @@ const getClient = async (secret: string) => {
   const opts: fauna.ClientConfig = { secret: secret }
   if (process.env.FAUNADB_DOMAIN) opts.domain = process.env.FAUNADB_DOMAIN
   if (process.env.FAUNADB_SCHEME) opts.scheme = <'http' | 'https'>process.env.FAUNADB_SCHEME
+  if (process.env.FAUNADB_PORT) opts.port = parseInt(process.env.FAUNADB_PORT, 10)
+
+  console.log(opts)
   const client = new fauna.Client(opts)
   return client
 }
