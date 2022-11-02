@@ -117,7 +117,7 @@ const equalDeepWithExplicitParameters = (e1: TaggedExpression, e2: TaggedExpress
   if (e1.statement === StatementType.Create) {
     j2 = cloneDeep(j2)
     Object.keys(j2).forEach((k) => {
-      if (j2[k] === null) {
+      if (j2[k] === null && k !== 'history_days') {
         delete j2[k]
       }
     })
@@ -125,7 +125,7 @@ const equalDeepWithExplicitParameters = (e1: TaggedExpression, e2: TaggedExpress
   if (e2.statement === StatementType.Create) {
     j1 = cloneDeep(j1)
     Object.keys(j1).forEach((k) => {
-      if (j1[k] === null) {
+      if (j1[k] === null && k !== 'history_days') {
         delete j1[k]
       }
     })
