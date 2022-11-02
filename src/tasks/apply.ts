@@ -16,7 +16,7 @@ import { ExpectedNumberOfMigrations } from '../errors/ExpectedNumber'
 import { config } from '../util/config'
 import { printMessage } from '../interactive-shell/shell'
 import boxen from 'boxen'
-import {highlight} from 'cli-highlight';
+import { highlight } from 'cli-highlight'
 
 const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) => {
   validateNumber(amount)
@@ -40,7 +40,7 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
     printMessage(`     ☁️ Retrieving current cloud migration state`, 'info')
     const allCloudMigrationTimestamps = migInfo.allCloudMigrations.map((e) => e.timestamp)
     printMessage(`     🤖 Retrieved current migration state`, 'info')
-    
+
     if (migInfo.allCloudMigrations.length < migInfo.allLocalMigrations.length) {
       const currTargetSkipped = await getCurrentAndTargetMigration(
         migInfo.allLocalMigrations,
@@ -50,9 +50,9 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
       const databaseDiff = await retrieveDatabaseMigrationInfo(currTargetSkipped.current, currTargetSkipped.target)
       const dbName = atChildDbPath.length > 0 ? `[ DB: ROOT > ${atChildDbPath.join(' > ')} ]` : '[ DB: ROOT ]'
       let messages: string[] = []
-      
+
       migInfo.allLocalMigrations.forEach((l, index) => {
-        let msg = '';
+        let msg = ''
         if (index === allCloudMigrationTimestamps.length + Number(amount) - 1) {
           msg = `${l} ← apply target`
         } else if (index === allCloudMigrationTimestamps.length - 1) {
@@ -70,8 +70,8 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
       const migrCollection = await config.getMigrationCollection()
       query = await generateApplyQuery(expressions, currTargetSkipped.skipped, currTargetSkipped.target, migrCollection)
       printMessage(`${dbName} Generated migration code`)
-      
-      const code = highlight(prettyPrintExpr(query), { language: 'clojure' });
+
+      const code = highlight(prettyPrintExpr(query), { language: 'clojure' })
       console.log(boxen(code, { padding: 1 }))
 
       printMessage(`${dbName} Applying migration`, 'info')
@@ -79,13 +79,12 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
       printMessage(`Done applying migrations`, 'success')
     } else {
       printMessage(`     ✅ Done, no migrations to apply`, 'success')
-      process.exit(0)
     }
   } catch (error) {
     const missingMigrDescription = isMissingMigrationCollectionFaunaError(error)
     if (missingMigrDescription) {
       printMessage(`The migrations collection is missing, \n did you run 'init' first?`, 'info')
-      return;
+      return
     }
     const schemaDescription = isSchemaCachingFaunaError(error)
     if (schemaDescription) {
