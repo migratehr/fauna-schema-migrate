@@ -11,7 +11,7 @@
   "scripts": {
     "build": "tsc && cpy 'templates/*.js' '../dist/' --cwd=src --parents",
     "watch": "tsc -w",
-    "test": "docker-compose up -d && ./bin/setup-fauna-container.sh && ava -T 200s --fail-fast && docker-compose down",
+    "test": "docker-compose up -d && ./bin/setup-fauna-container.sh && ava -T 200s --fail-fast || docker-compose down",
     "install-peers": "install-peers -f",
     "prepare": "tsc && cpy 'templates/*.js' '../dist/' --cwd=src --parents",
     "fmt": "npm run lint && npm run format",
