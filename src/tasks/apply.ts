@@ -124,9 +124,16 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
       printMessage(`The migrations collection is missing, \n did you run 'init' first?`, 'info')
       return
     }
+
+    // This is the delaying part...
     const schemaDescription = isSchemaCachingFaunaError(error)
     if (schemaDescription) {
+      printMessage(`Waiting for cache removal because of conflict`, 'info')
+      printMessage(`This is the conflict:`)
+      console.log(error)
+
       const dbName = atChildDbPath.length > 0 ? `[ DB: ROOT > ${atChildDbPath.join(' > ')} ]` : '[ DB: ROOT ]'
+      // Nasty shit... erm... Todo: Tweak migrations / log which migrations contain a schema caching error?
       await new Promise((resolve) => setTimeout(resolve, 60000))
       printMessage(`${dbName} Applying migration`)
       await client.query(query)
