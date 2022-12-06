@@ -18,9 +18,11 @@ import { printMessage } from '../interactive-shell/shell'
 import boxen from 'boxen'
 import { highlight } from 'cli-highlight'
 import fs from 'fs'
+import path from 'path'
 
 import hasha from 'hasha'
 import { retrieveCachedMigrations, writeMigrationToCache } from '../util/files'
+import { evalFQLCode } from '../fql/eval'
 
 const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) => {
   validateNumber(amount)
@@ -74,7 +76,7 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
 
       if (cachedPath) {
         printMessage(`     📦 Using cached migration`, 'info')
-        query = fs.readFileSync(cachedPath, 'utf8')
+        query = evalFQLCode(fs.readFileSync(path.join(process.cwd(), cachedPath), 'utf8'))
       } else {
         printMessage(`Generating migration code`)
         let messages: string[] = []
