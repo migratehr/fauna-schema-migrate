@@ -17,6 +17,7 @@ import { printMessage } from '../interactive-shell/shell'
 import boxen from 'boxen'
 import { highlight } from 'cli-highlight'
 import fs from 'fs'
+import path from 'path'
 
 import { retrieveCachedMigrations, writeMigrationToCache } from '../util/files'
 import { evalFQLCode } from '../fql/eval'
@@ -131,6 +132,17 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
       printMessage(`Waiting for cache removal because of conflict`, 'info')
       printMessage(`This is the conflict:`)
       console.log(error)
+      // Concatinate the error to a .fsm-error file in current working directory, creating the file if it doesn't exist.
+      // Create a .fsm-error file in the current working directory if it does not exist
+      const errorFile = path.join(process.cwd(), '.fsm-error')
+      if (!fs.existsSync(errorFile)) {
+        fs.writeFileSync(errorFile, '')
+      }
+      // Append the error to the file
+      fs.appendFileSync(
+        errorFile,
+        ['', JSON.stringify(schemaDescription), '', JSON.stringify(error), '', ''].join('\n')
+      )
 
       const dbName = atChildDbPath.length > 0 ? `[ DB: ROOT > ${atChildDbPath.join(' > ')} ]` : '[ DB: ROOT ]'
       // Nasty shit... erm... Todo: Tweak migrations / log which migrations contain a schema caching error?
