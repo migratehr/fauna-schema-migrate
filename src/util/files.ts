@@ -192,7 +192,7 @@ export const retrieveCachedMigrations = async (atChildDbPath: string[] = []): Pr
   const cachedMigrationHash = cachedMigrationFiles.reduce(
     (acc, hash) => ({
       ...acc,
-      [hash]: path.join(cachedMigrationDir, `${hash}.fql`),
+      [hash]: path.join(process.cwd(), cachedMigrationDir, `${hash}.fql`),
     }),
     {} as Record<string, string>
   )

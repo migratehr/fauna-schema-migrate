@@ -17,7 +17,6 @@ import { printMessage } from '../interactive-shell/shell'
 import boxen from 'boxen'
 import { highlight } from 'cli-highlight'
 import fs from 'fs'
-import path from 'path'
 
 import { retrieveCachedMigrations, writeMigrationToCache } from '../util/files'
 import { evalFQLCode } from '../fql/eval'
@@ -74,7 +73,7 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
 
       if (cachedPath) {
         printMessage(`     📦 Using cached migration`, 'info')
-        query = evalFQLCode(fs.readFileSync(path.join(process.cwd(), cachedPath), 'utf8'))
+        query = evalFQLCode(fs.readFileSync(cachedPath, 'utf8'))
         console.log(query)
       } else {
         printMessage(`Generating migration code`)
@@ -104,17 +103,14 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
         )
         printMessage(`${dbName} Generated migration code`)
 
-        const code = highlight(prettyPrintExpr(query), { language: 'clojure' })
-
-        // Save code to file with migration name in .cache folder in migration directory
-
-        console.log(boxen(code, { padding: 1 }))
-
         // TODO: Move under only if query successful? Remove if not?
         // Cache migration query in .cache
         await writeMigrationToCache(atChildDbPath, hashcode, query.toFQL())
         printMessage(`     📦 Cached migration`, 'info')
       }
+
+      const code = highlight(prettyPrintExpr(query), { language: 'clojure' })
+      console.log(boxen(code, { padding: 1 }))
 
       printMessage(`${dbName} Applying migration`, 'info')
       await client.query(query)
