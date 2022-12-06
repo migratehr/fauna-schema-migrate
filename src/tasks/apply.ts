@@ -76,6 +76,7 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
         printMessage(`     📦 Using cached migration`, 'info')
         query = fs.readFileSync(cachedPath, 'utf8')
       } else {
+        printMessage(`Generating migration code`)
         let messages: string[] = []
 
         migInfo.allLocalMigrations.forEach((l, index) => {
@@ -109,7 +110,7 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
         console.log(boxen(code, { padding: 1 }))
 
         // Cache migration query in .cache
-        await writeMigrationToCache(atChildDbPath, hashcode, query)
+        await writeMigrationToCache(atChildDbPath, hashcode, query.toFQL())
         printMessage(`     📦 Cached migration`, 'info')
       }
 
