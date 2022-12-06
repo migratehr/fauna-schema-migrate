@@ -200,16 +200,6 @@ export const retrieveCachedMigrations = async (atChildDbPath: string[] = []): Pr
   return cachedMigrationHash
 }
 
-export const writeMigrationToCache = async (atChildDbPath: string[] = [], hash: string, content: string) => {
-  const childDbsDir = await config.getChildDbsDirName()
-  const migrationsDir = await config.getMigrationsDir()
-  // Ignore child db for now...
-  const fullPath = childDbPathToFullPath(path.join(migrationsDir), atChildDbPath, childDbsDir)
-  const writeFullPath = path.join(fullPath, '.cache', `${hash}.fql`)
-  await fs.writeFileSync(writeFullPath, content)
-  return writeFullPath
-}
-
 // retrieves the last version of each migration resource before a given timestamp
 // since we are rolling back that migration we need to know what the original state was
 // of that resource.
@@ -382,6 +372,14 @@ export const writeNewMigration = async (atChildDbPath: string[], migrations: Tag
       )
     })
   }
+}
+
+export const writeMigrationToCache = async (atChildDbPath: string[] = [], hash: string, content: string) => {
+  const migrationsPath = path.join(process.cwd(), await config.getMigrationsDir())
+  const childDbsDir = await config.getChildDbsDirName()
+  const cachePath = path.join(childDbPathToFullPath(migrationsPath, atChildDbPath, childDbsDir), '.cache')
+  const cacheDir = !existsSync(cachePath) ? await shell.mkdir('-p', cachePath) : cachePath
+  fs.writeFileSync(path.join(cacheDir, `${hash}.fql`), content)
 }
 
 export const writeNewMigrationDir = async (atChildDbPath: string[], time: string) => {
