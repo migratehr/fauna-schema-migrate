@@ -8,7 +8,6 @@ import {
   getCurrentAndTargetMigration,
   generateApplyQuery,
   retrieveDiffCurrentTarget,
-  retrieveDatabaseMigrationInfo,
 } from '../migrations/advance'
 import { transformDiffToExpressions } from '../migrations/diff'
 import { clientGenerator } from '../util/fauna-client'
@@ -20,7 +19,6 @@ import { highlight } from 'cli-highlight'
 import fs from 'fs'
 import path from 'path'
 
-import hasha from 'hasha'
 import { retrieveCachedMigrations, writeMigrationToCache } from '../util/files'
 import { evalFQLCode } from '../fql/eval'
 
@@ -60,13 +58,13 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
 
       // TODO: Child path...
       const cachedMigrations = await retrieveCachedMigrations()
+      console.log(cachedMigrations)
 
       // Get hash of current and target migration
-      const hashcode = hasha([
-        currTargetSkipped.target,
-        ...currTargetSkipped.skipped,
+      const hashcode = [
         ...(currTargetSkipped.current?.timestamp ? [currTargetSkipped.current.timestamp] : []),
-      ])
+        currTargetSkipped.target,
+      ].join('-')
 
       printMessage(hashcode)
 
@@ -77,6 +75,7 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
       if (cachedPath) {
         printMessage(`     📦 Using cached migration`, 'info')
         query = evalFQLCode(fs.readFileSync(path.join(process.cwd(), cachedPath), 'utf8'))
+        console.log(query)
       } else {
         printMessage(`Generating migration code`)
         let messages: string[] = []
