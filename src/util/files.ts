@@ -176,6 +176,36 @@ export const retrieveAllMigrations = async (atChildDbPath: string[] = []): Promi
   return migrationSubdirs
 }
 
+export const retrieveCachedMigrations = async (atChildDbPath: string[] = []): Promise<Record<string, string>> => {
+  const childDbsDir = await config.getChildDbsDirName()
+  const migrationsDir = await config.getMigrationsDir()
+  // Ignore child db for now...
+  const fullPath = childDbPathToFullPath(path.join(migrationsDir), atChildDbPath, childDbsDir)
+  // TODO: Factor in that fullpath is child path
+  const cachedMigrationDir = getCacheDirectory(fullPath)
+  if (!cachedMigrationDir) return {}
+
+  // get all file names without extension in cachedMigrationDir
+  const cachedMigrationFiles = fs.readdirSync(cachedMigrationDir).map((f) => f.replace('.fql', ''))
+  const cachedMigrationHash = cachedMigrationFiles.reduce(
+    (acc, hash) => ({
+      [hash]: path.join(cachedMigrationDir, `${hash}.fql`),
+    }),
+    {} as Record<string, string>
+  )
+  return cachedMigrationHash
+}
+
+export const writeMigrationToCache = async (atChildDbPath: string[] = [], hash: string, content: string) => {
+  const childDbsDir = await config.getChildDbsDirName()
+  const migrationsDir = await config.getMigrationsDir()
+  // Ignore child db for now...
+  const fullPath = childDbPathToFullPath(path.join(migrationsDir), atChildDbPath, childDbsDir)
+  const writeFullPath = path.join(fullPath, '.cache', `${hash}.fql`)
+  await fs.writeFileSync(writeFullPath, content)
+  return writeFullPath
+}
+
 // retrieves the last version of each migration resource before a given timestamp
 // since we are rolling back that migration we need to know what the original state was
 // of that resource.
@@ -249,25 +279,41 @@ const getMigrationDirectories = (source: string, ignoreChildDbs: boolean, childD
     .sort()
 }
 
-const getDirectories = (source: string, ignoreChildDbs: boolean, childDbsDir: string) => {
+const getCacheDirectory = (source: string) => {
+  // TODO: implement for child directories
   if (existsSync(source)) {
     return readdirSync(source)
       .map((name) => path.join(source, name))
       .filter(isDirectory)
-      .filter((dir) => {
-        if (!ignoreChildDbs) {
-          return true
-        } else {
-          const split = dir.split(path.sep)
-          return split[split.length - 1] !== childDbsDir
-        }
-      })
-      .map((p) => {
-        const regex = new RegExp('([^\\' + path.sep + ']*)\\' + path.sep + '*$')
-        const res: any = p.match(regex)
-        const folder: string = res[1]
-        return folder
-      })
+      .filter((name) => name.includes('.cache'))[0]
+  } else {
+    return undefined
+  }
+}
+
+const getDirectories = (source: string, ignoreChildDbs: boolean, childDbsDir: string) => {
+  if (existsSync(source)) {
+    return (
+      readdirSync(source)
+        .map((name) => path.join(source, name))
+        .filter(isDirectory)
+        // TODO: Decouple
+        .filter((name) => !name.includes('.cache'))
+        .filter((dir) => {
+          if (!ignoreChildDbs) {
+            return true
+          } else {
+            const split = dir.split(path.sep)
+            return split[split.length - 1] !== childDbsDir
+          }
+        })
+        .map((p) => {
+          const regex = new RegExp('([^\\' + path.sep + ']*)\\' + path.sep + '*$')
+          const res: any = p.match(regex)
+          const folder: string = res[1]
+          return folder
+        })
+    )
   } else {
     const folders: string[] = []
     return folders

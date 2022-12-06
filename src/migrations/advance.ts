@@ -81,6 +81,7 @@ export const getCurrentAndTargetMigration = async (
     throw new Error('Asked for apply but there are no migrations to apply anymore')
   }
   const skippedMigrations = localMigrations.slice(cloudMigrations.length, applyToIndex)
+
   return { current: currentMigration, target: targetMigration, skipped: skippedMigrations }
 }
 

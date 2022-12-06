@@ -17,6 +17,10 @@ import { config } from '../util/config'
 import { printMessage } from '../interactive-shell/shell'
 import boxen from 'boxen'
 import { highlight } from 'cli-highlight'
+import fs from 'fs'
+
+import hasha from 'hasha'
+import { retrieveCachedMigrations, writeMigrationToCache } from '../util/files'
 
 const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) => {
   validateNumber(amount)
@@ -47,32 +51,61 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
         migInfo.allCloudMigrations,
         amount
       )
-      const databaseDiff = await retrieveDatabaseMigrationInfo(currTargetSkipped.current, currTargetSkipped.target)
+
       const dbName = atChildDbPath.length > 0 ? `[ DB: ROOT > ${atChildDbPath.join(' > ')} ]` : '[ DB: ROOT ]'
-      let messages: string[] = []
 
-      migInfo.allLocalMigrations.forEach((l, index) => {
-        let msg = ''
-        if (index === allCloudMigrationTimestamps.length + Number(amount) - 1) {
-          msg = `${l} ← apply target`
-        } else if (index === allCloudMigrationTimestamps.length - 1) {
-          msg = `${allCloudMigrationTimestamps[index]} ← cloud state`
-        } else {
-          msg = `${l}`
-        }
-        messages.push(msg)
-      })
+      // TODO: Child path...
+      const cachedMigrations = await retrieveCachedMigrations()
 
-      console.log(boxen(messages.join('\n'), { padding: 1 }))
-      const diff = await retrieveDiffCurrentTarget(atChildDbPath, currTargetSkipped.current, currTargetSkipped.target)
+      // Get hash of current and target migration
+      const hashcode = hasha([
+        currTargetSkipped.target,
+        ...currTargetSkipped.skipped,
+        ...(currTargetSkipped.current?.timestamp ? [currTargetSkipped.current.timestamp] : []),
+      ])
 
-      const expressions = transformDiffToExpressions(diff)
-      const migrCollection = await config.getMigrationCollection()
-      query = await generateApplyQuery(expressions, currTargetSkipped.skipped, currTargetSkipped.target, migrCollection)
-      printMessage(`${dbName} Generated migration code`)
+      const cachedPath = cachedMigrations[hashcode]
 
-      const code = highlight(prettyPrintExpr(query), { language: 'clojure' })
-      console.log(boxen(code, { padding: 1 }))
+      if (cachedPath) {
+        printMessage(`     📦 Using cached migration`, 'info')
+        query = fs.readFileSync(cachedPath, 'utf8')
+      } else {
+        let messages: string[] = []
+
+        migInfo.allLocalMigrations.forEach((l, index) => {
+          let msg = ''
+          if (index === allCloudMigrationTimestamps.length + Number(amount) - 1) {
+            msg = `${l} ← apply target`
+          } else if (index === allCloudMigrationTimestamps.length - 1) {
+            msg = `${allCloudMigrationTimestamps[index]} ← cloud state`
+          } else {
+            msg = `${l}`
+          }
+          messages.push(msg)
+        })
+
+        console.log(boxen(messages.join('\n'), { padding: 1 }))
+        const diff = await retrieveDiffCurrentTarget(atChildDbPath, currTargetSkipped.current, currTargetSkipped.target)
+        const expressions = transformDiffToExpressions(diff)
+        const migrCollection = await config.getMigrationCollection()
+        query = await generateApplyQuery(
+          expressions,
+          currTargetSkipped.skipped,
+          currTargetSkipped.target,
+          migrCollection
+        )
+        printMessage(`${dbName} Generated migration code`)
+
+        const code = highlight(prettyPrintExpr(query), { language: 'clojure' })
+
+        // Save code to file with migration name in .cache folder in migration directory
+
+        console.log(boxen(code, { padding: 1 }))
+
+        // Cache migration query in .cache
+        await writeMigrationToCache(atChildDbPath, hashcode, query)
+        printMessage(`     📦 Cached migration`, 'info')
+      }
 
       printMessage(`${dbName} Applying migration`, 'info')
       await client.query(query)
