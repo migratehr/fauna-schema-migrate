@@ -54,6 +54,8 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
 
       const dbName = atChildDbPath.length > 0 ? `[ DB: ROOT > ${atChildDbPath.join(' > ')} ]` : '[ DB: ROOT ]'
 
+      printMessage(dbName)
+
       // TODO: Child path...
       const cachedMigrations = await retrieveCachedMigrations()
 
@@ -64,7 +66,11 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
         ...(currTargetSkipped.current?.timestamp ? [currTargetSkipped.current.timestamp] : []),
       ])
 
+      printMessage(hashcode)
+
       const cachedPath = cachedMigrations[hashcode]
+
+      printMessage(`cached path: ${cachedPath}`)
 
       if (cachedPath) {
         printMessage(`     📦 Using cached migration`, 'info')

@@ -14,6 +14,7 @@ import { MigrationPathAndFiles } from '../types/migrations'
 import { prettyPrintExpr } from '../fql/print'
 import { ErrorWithFilePath } from '../errors/ErrorWithFilePath'
 import { v4 as uuidv4 } from 'uuid'
+import { printMessage } from '../interactive-shell/shell'
 
 const globPromise = util.promisify(glob)
 
@@ -183,6 +184,7 @@ export const retrieveCachedMigrations = async (atChildDbPath: string[] = []): Pr
   const fullPath = childDbPathToFullPath(path.join(migrationsDir), atChildDbPath, childDbsDir)
   // TODO: Factor in that fullpath is child path
   const cachedMigrationDir = getCacheDirectory(fullPath)
+  printMessage(`'Cached migration dir'${cachedMigrationDir}`)
   if (!cachedMigrationDir) return {}
 
   // get all file names without extension in cachedMigrationDir
@@ -193,6 +195,8 @@ export const retrieveCachedMigrations = async (atChildDbPath: string[] = []): Pr
     }),
     {} as Record<string, string>
   )
+
+  printMessage(`Cached migration hash ${JSON.stringify(cachedMigrationHash)}`)
   return cachedMigrationHash
 }
 
