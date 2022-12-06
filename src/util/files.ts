@@ -376,10 +376,15 @@ export const writeNewMigration = async (atChildDbPath: string[], migrations: Tag
 
 export const writeMigrationToCache = async (atChildDbPath: string[] = [], hash: string, content: string) => {
   const migrationsPath = path.join(process.cwd(), await config.getMigrationsDir())
+  console.log('migrationsPath', migrationsPath)
   const childDbsDir = await config.getChildDbsDirName()
-  const cachePath = path.join(childDbPathToFullPath(migrationsPath, atChildDbPath, childDbsDir), '.cache')
-  const cacheDir = !existsSync(cachePath) ? await shell.mkdir('-p', cachePath) : cachePath
-  fs.writeFileSync(path.join(cacheDir, `${hash}.fql`), content)
+  console.log('childDbsDir', childDbsDir)
+  const fullPath = childDbPathToFullPath(migrationsPath, atChildDbPath, childDbsDir, '.cache')
+  console.log('fullPath', fullPath)
+  if (!existsSync(fullPath)) {
+    shell.mkdir('-p', fullPath)
+  }
+  fs.writeFileSync(path.join(fullPath, `${hash}.fql`), content)
 }
 
 export const writeNewMigrationDir = async (atChildDbPath: string[], time: string) => {

@@ -109,6 +109,7 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
 
         console.log(boxen(code, { padding: 1 }))
 
+        // TODO: Move under only if query successful? Remove if not?
         // Cache migration query in .cache
         await writeMigrationToCache(atChildDbPath, hashcode, query.toFQL())
         printMessage(`     📦 Cached migration`, 'info')
