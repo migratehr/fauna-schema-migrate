@@ -16,6 +16,18 @@ dotenv.config({ path: fullPath })
 
 const { If, Exists, CreateKey, Database, CreateDatabase, Select, Delete } = fauna.query
 
+export const generate = async (dir: string, resourceFolders: string[] = ['resources']): Promise<void> => {
+  for (const folder of resourceFolders) {
+    console.log('\n~~~~~~~~~~~~~~~ generate migrations ~~~~~~~~~~~~~~~~')
+    const stub = sinon.stub(Config.prototype, 'getResourcesDir').returns(Promise.resolve(path.join(dir, folder)))
+    const planned = await planMigrations()
+    const migrations = await generateMigrations(planned)
+    const time = new Date().toISOString()
+    await writeMigrations([], migrations, time)
+    stub.restore()
+  }
+}
+
 // Migrate in multiple steps
 export const fullApply = async (dir: string, resourceFolders: string[] = ['resources']): Promise<void> => {
   for (const folder of resourceFolders) {
@@ -36,15 +48,7 @@ export const multiStepFullApply = async (
   resourceFolders: string[] = ['resources'],
   amount = 1
 ): Promise<void> => {
-  for (const folder of resourceFolders) {
-    console.log('\n~~~~~~~~~~~~~~~ generate migrations ~~~~~~~~~~~~~~~~')
-    const stub = sinon.stub(Config.prototype, 'getResourcesDir').returns(Promise.resolve(path.join(dir, folder)))
-    const planned = await planMigrations()
-    const migrations = await generateMigrations(planned)
-    const time = new Date().toISOString()
-    await writeMigrations([], migrations, time)
-    stub.restore()
-  }
+  await generate(dir, resourceFolders)
   return await apply(amount)
 }
 
