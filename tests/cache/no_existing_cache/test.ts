@@ -9,13 +9,18 @@ import sinon from 'sinon'
 import { cache } from '../../../src/tasks/cache'
 import fsExists from 'fs.promises.exists'
 
+const CACHE_DIR = '.cache'
 const testPath = path.relative(process.cwd(), __dirname)
-const cachePath = path.join(testPath, 'migrations', '.cache')
+const cachePath = path.join(testPath, 'migrations', CACHE_DIR)
 
-let stub: sinon.SinonStub<[], Promise<string>>
+let migrationsDirStub: sinon.SinonStub<[], Promise<string>>
+let cacheNameStub: sinon.SinonStub<[], Promise<string>>
 
 test.before(async (t: ExecutionContext) => {
-  stub = sinon.stub(Config.prototype, 'getMigrationsDir').returns(Promise.resolve(path.join(testPath, 'migrations')))
+  migrationsDirStub = sinon
+    .stub(Config.prototype, 'getMigrationsDir')
+    .returns(Promise.resolve(path.join(testPath, 'migrations')))
+  cacheNameStub = sinon.stub(Config.prototype, 'getCacheName').returns(Promise.resolve(CACHE_DIR))
   if (await fsExists(cachePath)) {
     await fs.promises.rmdir(cachePath, { recursive: true })
   }
@@ -38,12 +43,11 @@ test('when apply size is 1, it should create a cache folder for each migration i
       return fsExists(dirPath)
     })
   )
-  console.log(responses)
-
   t.is(responses.every(Boolean), true, 'Passes')
 })
 
 test.after(async (t: ExecutionContext) => {
   // await fs.promises.rmdir(cachePath, { recursive: true })
-  stub.restore()
+  migrationsDirStub.restore()
+  cacheNameStub.restore()
 })
