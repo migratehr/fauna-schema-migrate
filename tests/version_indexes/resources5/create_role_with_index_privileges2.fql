@@ -1,0 +1,9 @@
+// Copyright Fauna, Inc.
+// SPDX-License-Identifier: MIT-0
+CreateRole({
+    name: 'test_role_2',
+    privileges: {
+      resource: Index('test_index'),
+      actions: { read: true },
+    },
+})
