@@ -201,6 +201,18 @@ export const retrieveCachedMigrations = async (atChildDbPath: string[] = []): Pr
   return cachedMigrationHash
 }
 
+const getCacheDirectory = (source: string) => {
+  // TODO: implement for child directories
+  if (existsSync(source)) {
+    return readdirSync(source)
+      .map((name) => path.join(source, name))
+      .filter(isDirectory)
+      .filter((name) => name.includes('.cache'))[0]
+  } else {
+    return undefined
+  }
+}
+
 // retrieves the last version of each migration resource before a given timestamp
 // since we are rolling back that migration we need to know what the original state was
 // of that resource.
