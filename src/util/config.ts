@@ -59,6 +59,10 @@ export class Config {
     )
   }
 
+  async getCacheName() {
+    return '.cache'
+  }
+
   async getResourcesDir() {
     return path.join(
       await this.getConfigVar(await this.readConfig(), ['directories', 'root']),
