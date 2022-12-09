@@ -21,12 +21,23 @@ test.before(async (t: ExecutionContext) => {
     .stub(Config.prototype, 'getMigrationsDir')
     .returns(Promise.resolve(path.join(testPath, 'migrations')))
   cacheNameStub = sinon.stub(Config.prototype, 'getCacheName').returns(Promise.resolve(CACHE_DIR))
+})
+
+test.beforeEach(async (t: ExecutionContext) => {
   if (await fsExists(cachePath)) {
     await fs.promises.rmdir(cachePath, { recursive: true })
   }
 })
 
-test('when apply size is 1, it should create a cache folder for each migration in the format <from?>_<to>_step', async (t: ExecutionContext) => {
+test.after(async (t: ExecutionContext) => {
+  migrationsDirStub.restore()
+  cacheNameStub.restore()
+  if (await fsExists(cachePath)) {
+    await fs.promises.rmdir(cachePath, { recursive: true })
+  }
+})
+
+test('when step size is 1, it should create the correct cache folders in the format <from?>_<to>_1', async (t: ExecutionContext) => {
   console.log(await cache())
 
   const expectedDirectories = [
@@ -46,8 +57,18 @@ test('when apply size is 1, it should create a cache folder for each migration i
   t.is(responses.every(Boolean), true, 'Passes')
 })
 
-test.after(async (t: ExecutionContext) => {
-  // await fs.promises.rmdir(cachePath, { recursive: true })
-  migrationsDirStub.restore()
-  cacheNameStub.restore()
+test('when step size is more than 1, it should create the correct cache folders in the format <from?>_<to>_<stepsize>', async (t: ExecutionContext) => {
+  console.log(await cache(3))
+
+  const expectedDirectories = ['_2022-12-08T19:45:58.691Z_3', '2022-12-08T19:45:58.691Z_2022-12-08T19:45:58.706Z_3']
+
+  const responses = await Promise.all(
+    expectedDirectories.map(async (dir) => {
+      const dirPath = path.join(cachePath, dir)
+      return fsExists(dirPath)
+    })
+  )
+
+  console.log(responses)
+  t.is(responses.every(Boolean), true, 'Passes')
 })
