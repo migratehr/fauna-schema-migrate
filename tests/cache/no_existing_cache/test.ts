@@ -37,38 +37,81 @@ test.after(async (t: ExecutionContext) => {
   }
 })
 
-test('when step size is 1, it should create the correct cache folders in the format <from?>_<to>_1', async (t: ExecutionContext) => {
+test('when step size is 1, it should create the correct folder and query', async (t: ExecutionContext) => {
   console.log(await cache())
 
-  const expectedDirectories = [
-    '_2022-12-08T19:45:58.674Z_1',
-    '2022-12-08T19:45:58.674Z_2022-12-08T19:45:58.685Z_1',
-    '2022-12-08T19:45:58.685Z_2022-12-08T19:45:58.691Z_1',
-    '2022-12-08T19:45:58.691Z_2022-12-08T19:45:58.699Z_1',
-    '2022-12-08T19:45:58.699Z_2022-12-08T19:45:58.706Z_1',
+  const expected = [
+    {
+      directoryName: '_2022-12-08T19:45:58.674Z_1',
+    },
+    {
+      directoryName: '2022-12-08T19:45:58.674Z_2022-12-08T19:45:58.685Z_1',
+    },
+    {
+      directoryName: '2022-12-08T19:45:58.685Z_2022-12-08T19:45:58.691Z_1',
+    },
+    {
+      directoryName: '2022-12-08T19:45:58.691Z_2022-12-08T19:45:58.699Z_1',
+    },
+    {
+      directoryName: '2022-12-08T19:45:58.699Z_2022-12-08T19:45:58.706Z_1',
+    },
   ]
 
   const responses = await Promise.all(
-    expectedDirectories.map(async (dir) => {
-      const dirPath = path.join(cachePath, dir)
-      return fsExists(dirPath)
+    expected.map(async ({ directoryName }) => {
+      const dirPath = path.join(cachePath, directoryName)
+      t.is(await fsExists(dirPath), true, 'Has directory')
+
+      const queryPath = path.join(dirPath, 'query.fql')
+      const query = await fs.promises.readFile(queryPath, 'utf8')
+
+      return {
+        directoryPath: dirPath,
+        query,
+      }
     })
   )
-  t.is(responses.every(Boolean), true, 'Passes')
+
+  const directories = responses.map(({ directoryPath }) => directoryPath)
+  t.snapshot(directories)
+
+  const queries = responses.map(({ query }) => query)
+  t.snapshot(queries)
 })
 
-test('when step size is more than 1, it should create the correct cache folders in the format <from?>_<to>_<stepsize>', async (t: ExecutionContext) => {
+test('when step size is more than 1, it should create the correct folder and query', async (t: ExecutionContext) => {
   console.log(await cache(3))
 
-  const expectedDirectories = ['_2022-12-08T19:45:58.691Z_3', '2022-12-08T19:45:58.691Z_2022-12-08T19:45:58.706Z_3']
+  const expected = [
+    {
+      directoryName: '_2022-12-08T19:45:58.691Z_3',
+    },
+    {
+      directoryName: '2022-12-08T19:45:58.691Z_2022-12-08T19:45:58.706Z_3',
+    },
+  ]
 
   const responses = await Promise.all(
-    expectedDirectories.map(async (dir) => {
-      const dirPath = path.join(cachePath, dir)
-      return fsExists(dirPath)
+    expected.map(async ({ directoryName }) => {
+      const dirPath = path.join(cachePath, directoryName)
+      t.is(await fsExists(dirPath), true, 'Has directory')
+
+      const queryPath = path.join(dirPath, 'query.fql')
+      const query = await fs.promises.readFile(queryPath, 'utf8')
+
+      return {
+        directoryPath: dirPath,
+        query,
+      }
     })
   )
 
-  console.log(responses)
-  t.is(responses.every(Boolean), true, 'Passes')
+  const directories = responses.map(({ directoryPath }) => directoryPath)
+  t.snapshot(directories)
+
+  const queries = responses.map(({ query }) => query)
+  t.snapshot(queries)
 })
+
+// test('it creates an FQL file equivilent to the processed migration in the directory', (t: ExecutionContext) => {})

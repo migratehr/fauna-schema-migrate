@@ -85,6 +85,31 @@ export const getCurrentAndTargetMigration = async (
   return { current: currentMigration, target: targetMigration, skipped: skippedMigrations }
 }
 
+// Local files only
+export const retrieveLocalDiffCurrentTarget = async (
+  atChildDbPath: string[],
+  targetMigration: string,
+  currentMigration?: null | string
+) => {
+  const appliedMigrations = await getLocalAppliedMigrations(atChildDbPath, currentMigration)
+  const { migrations: toApplyMigrations } = await getLastMigrationSnippets(atChildDbPath, targetMigration)
+  const diff = diffSnippets(appliedMigrations, toApplyMigrations)
+  return diff
+}
+
+const getLocalAppliedMigrations = async (atChildDbPath: string[], currentMigration?: string | null) => {
+  if (currentMigration) {
+    const { migrations: currentMigrations } = await getLastMigrationSnippets(atChildDbPath, currentMigration)
+    return currentMigrations
+  } else {
+    const categories: any = {}
+    for (const item in ResourceTypes) {
+      categories[item] = []
+    }
+    return categories
+  }
+}
+
 export const retrieveDiffCurrentTarget = async (
   atChildDbPath: string[],
   currentMigration: null | MigrationRefAndTimestamp,

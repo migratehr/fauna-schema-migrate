@@ -8,6 +8,7 @@ import {
   getCurrentAndTargetMigration,
   generateApplyQuery,
   retrieveDiffCurrentTarget,
+  retrieveLocalDiffCurrentTarget,
 } from '../migrations/advance'
 import { transformDiffToExpressions } from '../migrations/diff'
 import { clientGenerator } from '../util/fauna-client'
@@ -71,6 +72,17 @@ function getMigrationChunkInfo(migrationArray: string[], chunk_size: number) {
   return output
 }
 
+const generateLocalSkippedMigration = async (
+  atChildDbPath: string[],
+  { from, target, migrations }: MigrationChunkInfo
+) => {
+  const skipped = migrations.slice(0, -1)
+  const diff = await retrieveLocalDiffCurrentTarget(atChildDbPath, target, from)
+  const expressions = transformDiffToExpressions(diff)
+  const migrCollection = await config.getMigrationCollection()
+  return await generateApplyQuery(expressions, skipped, target, migrCollection)
+}
+
 export const cache = async (amount: number | string = 1, atChildDbPath: string[] = []) => {
   validateNumber(amount)
 
@@ -113,6 +125,11 @@ export const cache = async (amount: number | string = 1, atChildDbPath: string[]
       console.log('not exists')
       console.log(chunkCacheDir)
       await fs.promises.mkdir(chunkCacheDir, { recursive: true })
+      const FQLQuery = (await generateLocalSkippedMigration(atChildDbPath, chunk)).toFQL()
+      // Generate checksum from the original migration folder
+
+      // Save FQL Query to query.fql file in chunkCacheDir
+      await fs.promises.writeFile(path.join(chunkCacheDir, 'query.fql'), FQLQuery)
       // const cachedPath = path.join(cachedMigrationDir, cacheFolder)
     })
   )

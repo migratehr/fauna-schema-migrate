@@ -8,6 +8,7 @@ import {
   getCurrentAndTargetMigration,
   generateApplyQuery,
   retrieveDiffCurrentTarget,
+  retrieveLocalDiffCurrentTarget,
 } from '../migrations/advance'
 import { transformDiffToExpressions } from '../migrations/diff'
 import { clientGenerator } from '../util/fauna-client'
