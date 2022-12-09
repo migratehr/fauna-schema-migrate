@@ -73,9 +73,8 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
       printMessage(`cached path: ${cachedPath}`)
 
       if (cachedPath) {
-        printMessage(`     📦 Using cached migration`, 'info')
         query = evalFQLCode(fs.readFileSync(cachedPath, 'utf8'))
-        console.log(query)
+        printMessage(`     📦 Using cached migration`, 'info')
       } else {
         printMessage(`Generating migration code`)
         let messages: string[] = []
@@ -103,11 +102,6 @@ const apply = async (amount: number | string = 1, atChildDbPath: string[] = []) 
           migrCollection
         )
         printMessage(`${dbName} Generated migration code`)
-
-        // TODO: Move under only if query successful? Remove if not?
-        // Cache migration query in .cache
-        await writeMigrationToCache(atChildDbPath, hashcode, query.toFQL())
-        printMessage(`     📦 Cached migration`, 'info')
       }
 
       const code = highlight(prettyPrintExpr(query), { language: 'clojure' })
