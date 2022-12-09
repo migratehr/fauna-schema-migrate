@@ -274,18 +274,6 @@ const getMigrationDirectories = (source: string, ignoreChildDbs: boolean, childD
     .sort()
 }
 
-const getCacheDirectory = (source: string) => {
-  // TODO: implement for child directories
-  if (existsSync(source)) {
-    return readdirSync(source)
-      .map((name) => path.join(source, name))
-      .filter(isDirectory)
-      .filter((name) => name.includes('.cache'))[0]
-  } else {
-    return undefined
-  }
-}
-
 const getDirectories = (source: string, ignoreChildDbs: boolean, childDbsDir: string) => {
   if (existsSync(source)) {
     return (
@@ -293,7 +281,10 @@ const getDirectories = (source: string, ignoreChildDbs: boolean, childDbsDir: st
         .map((name) => path.join(source, name))
         .filter(isDirectory)
         // TODO: Decouple
-        .filter((name) => !name.includes('.cache'))
+        .filter((dir) => {
+          // TODO: Make async and use config for .cache name
+          return !['.cache', '.backups'].includes(path.basename(dir))
+        })
         .filter((dir) => {
           if (!ignoreChildDbs) {
             return true
@@ -398,7 +389,7 @@ export const writeNewMigrationDir = async (atChildDbPath: string[], time: string
   return fullPath
 }
 
-const childDbPathToFullPath = (
+export const childDbPathToFullPath = (
   rootDir: string,
   atChildDbPath: string[],
   childDbName: string,
