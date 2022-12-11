@@ -1,1 +1,0 @@
-Let([{"var0": Select(["ref"], Delete(Index("test_index")))}, {"var1": Select(["ref"], Update(Role("test_role"), {"privileges": {}, "data": null, "membership": null}))}], Map(["2022-12-08T19:45:58.691Z"], Lambda("migration", Create(Collection("migrations"), {"data": {"migration": Var("migration")}}))))

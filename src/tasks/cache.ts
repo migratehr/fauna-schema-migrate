@@ -132,12 +132,30 @@ export const cache =
       })
     )
 
-    // Remove any incomplete cached migrations with that stepSize
+    // Matching incomplete chunks
+    const incompleteChunks = chunks.filter((chunk) => !chunk.isComplete).filter((chunk) => chunk.stepSize === chunkSize)
+    const existingIncompleteChunks = existingMigrationChunks
+      .filter((chunk) => !chunk.isComplete)
+      .filter((chunk) => chunk.stepSize === chunkSize)
+
+    // Get existing migration chunks that do not match incomplete chunks
+    const outdatedExistingIncompleteChunks = existingIncompleteChunks.filter(
+      (existingChunk) =>
+        !incompleteChunks.some(
+          (incompleteChunk) =>
+            existingChunk.from === incompleteChunk.from &&
+            existingChunk.target === incompleteChunk.target &&
+            existingChunk.stepSize === incompleteChunk.stepSize
+        )
+    )
+    console.log('Outdated incomplete chunks')
+    console.log(outdatedExistingIncompleteChunks)
+
+    // Remove outdated incomplete chunks
     await Promise.all(
-      existingMigrationChunks
-        .filter((chunk) => !chunk.isComplete)
-        .filter((chunk) => chunk.stepSize === chunkSize)
-        .map((chunk) => cfm.removeCachedMigration(atChildDbPath, chunk))
+      outdatedExistingIncompleteChunks.map(async (chunk) => {
+        await cfm.removeCachedMigration(atChildDbPath, chunk)
+      })
     )
 
     const responses = await Promise.all(
