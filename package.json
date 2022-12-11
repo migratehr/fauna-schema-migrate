@@ -64,6 +64,7 @@
     "faunadb": "^4.4.1"
   },
   "devDependencies": {
+    "@types/folder-hash": "^4.0.2",
     "@types/scheduler": "^0.16.1",
     "@types/sinon": "^9.0.9",
     "@types/uuid": "^8.3.0",
