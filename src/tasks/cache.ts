@@ -87,7 +87,6 @@ export const cacheFileManager = {
     fql: string,
     hashTree: HashElementNode
   ) {
-    console.log(chunk)
     const cacheDir = await this.getCachedMigrationPath(atChildDbPath, chunk)
     await fs.promises.mkdir(cacheDir, { recursive: true })
     await Promise.all([
@@ -105,7 +104,6 @@ export const cache =
     validateNumber(amount)
 
     const localMigrations = await retrieveAllMigrations(atChildDbPath)
-    console.log(localMigrations)
     const chunkSize = typeof amount === 'string' ? parseInt(amount, 10) : amount
     const chunks = getMigrationChunkInfo(localMigrations, chunkSize)
 
