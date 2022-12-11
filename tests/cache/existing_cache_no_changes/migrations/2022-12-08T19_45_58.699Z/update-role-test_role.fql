@@ -1,0 +1,10 @@
+Update(Role("test_role"), {
+  "privileges": {
+    "resource": Index("test_index"),
+    "actions": {
+      "read": true
+    }
+  },
+  "data": null,
+  "membership": null
+})
