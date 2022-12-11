@@ -92,6 +92,7 @@ export const cacheFileManager = {
     await Promise.all([
       fs.promises.writeFile(path.join(cacheDir, 'query.fql'), fql),
       fs.promises.writeFile(path.join(cacheDir, 'hash-tree.json'), JSON.stringify(hashTree)),
+      fs.promises.writeFile(path.join(cacheDir, 'meta.json'), JSON.stringify(chunk)),
     ])
   },
 
@@ -120,6 +121,24 @@ export const cache =
     if (!(await cfm.existsCacheDirectory(atChildDbPath))) {
       await cfm.makeCacheDirectory(atChildDbPath)
     }
+
+    // Get exsiting cached migration metadata
+    const existingMigrationChunks = await Promise.all(
+      (
+        await fs.promises.readdir(await cfm.getCacheDirectory(atChildDbPath))
+      ).map(async (folder) => {
+        const metaPath = path.join(await cfm.getCacheDirectory(atChildDbPath), folder, 'meta.json')
+        return JSON.parse(await fs.promises.readFile(metaPath, 'utf-8')) as MigrationChunkInfo
+      })
+    )
+
+    // Remove any incomplete cached migrations with that stepSize
+    await Promise.all(
+      existingMigrationChunks
+        .filter((chunk) => !chunk.isComplete)
+        .filter((chunk) => chunk.stepSize === chunkSize)
+        .map((chunk) => cfm.removeCachedMigration(atChildDbPath, chunk))
+    )
 
     const responses = await Promise.all(
       chunks.map(async (chunk) => {

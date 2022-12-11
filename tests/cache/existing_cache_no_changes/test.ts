@@ -3,7 +3,7 @@
 
 import path from 'path'
 import test, { ExecutionContext } from 'ava'
-import fs from 'fs'
+import fs from 'fs-extra'
 import { Config } from '../../../src/util/config'
 import sinon from 'sinon'
 import { cache, CacheFileManager, cacheFileManager } from '../../../src/tasks/cache'
@@ -13,6 +13,7 @@ const CACHE_DIR = '.cache'
 const testPath = path.relative(process.cwd(), __dirname)
 const migrationsPath = path.join(testPath, 'migrations')
 const cachePath = path.join(migrationsPath, CACHE_DIR)
+const oldCachePath = path.join(testPath, 'old_cache')
 
 let migrationsDirStub: sinon.SinonStub<[], Promise<string>>
 let cacheNameStub: sinon.SinonStub<[], Promise<string>>
@@ -22,11 +23,18 @@ test.before(async (t: ExecutionContext) => {
     .stub(Config.prototype, 'getMigrationsDir')
     .returns(Promise.resolve(path.join(testPath, 'migrations')))
   cacheNameStub = sinon.stub(Config.prototype, 'getCacheName').returns(Promise.resolve(CACHE_DIR))
+  if (await fsExists(cachePath)) {
+    await fs.promises.rmdir(cachePath, { recursive: true })
+  }
+  await fs.copy(oldCachePath, cachePath)
 })
 
 test.after(async (t: ExecutionContext) => {
   migrationsDirStub.restore()
   cacheNameStub.restore()
+  if (await fsExists(cachePath)) {
+    await fs.promises.rmdir(cachePath, { recursive: true })
+  }
 })
 
 test('when step size is 1, it should not alter cache or write new cache objects', async (t: ExecutionContext) => {

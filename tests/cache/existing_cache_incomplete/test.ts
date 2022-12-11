@@ -26,13 +26,15 @@ test.before(async (t: ExecutionContext) => {
   if (await fsExists(cachePath)) {
     await fs.promises.rmdir(cachePath, { recursive: true })
   }
-
   await fs.copy(oldCachePath, cachePath)
 })
 
 test.after(async (t: ExecutionContext) => {
   migrationsDirStub.restore()
   cacheNameStub.restore()
+  if (await fsExists(cachePath)) {
+    await fs.promises.rmdir(cachePath, { recursive: true })
+  }
 })
 
 test('when step size is 1, it adds the missing cache entry', async (t: ExecutionContext) => {

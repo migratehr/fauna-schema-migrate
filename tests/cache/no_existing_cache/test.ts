@@ -33,9 +33,9 @@ test.beforeEach(async (t: ExecutionContext) => {
 test.after(async (t: ExecutionContext) => {
   migrationsDirStub.restore()
   cacheNameStub.restore()
-  if (await fsExists(cachePath)) {
-    await fs.promises.rmdir(cachePath, { recursive: true })
-  }
+  // if (await fsExists(cachePath)) {
+  //   await fs.promises.rmdir(cachePath, { recursive: true })
+  // }
 })
 
 test('when step size is 1, it should create the correct folder and query', async (t: ExecutionContext) => {
@@ -75,10 +75,14 @@ test('when step size is 1, it should create the correct folder and query', async
       const hashTreePath = path.join(dirPath, 'hash-tree.json')
       const hashTree = await fs.promises.readFile(hashTreePath, 'utf8')
 
+      const metaPath = path.join(dirPath, 'meta.json')
+      const meta = await fs.promises.readFile(metaPath, 'utf8')
+
       return {
         directoryPath: dirPath,
         query,
         hashTree,
+        meta,
       }
     })
   )
@@ -91,6 +95,9 @@ test('when step size is 1, it should create the correct folder and query', async
 
   const hashTrees = responses.map(({ hashTree }) => hashTree)
   t.snapshot(hashTrees)
+
+  const meta = responses.map(({ meta }) => meta)
+  t.snapshot(meta)
 })
 
 test('when step size is more than 1, it should create the correct folder and query', async (t: ExecutionContext) => {
@@ -118,10 +125,14 @@ test('when step size is more than 1, it should create the correct folder and que
       const hashTreePath = path.join(dirPath, 'hash-tree.json')
       const hashTree = await fs.promises.readFile(hashTreePath, 'utf8')
 
+      const metaPath = path.join(dirPath, 'meta.json')
+      const meta = await fs.promises.readFile(metaPath, 'utf8')
+
       return {
         directoryPath: dirPath,
         query,
         hashTree,
+        meta,
       }
     })
   )
@@ -134,6 +145,9 @@ test('when step size is more than 1, it should create the correct folder and que
 
   const hashTrees = responses.map(({ hashTree }) => hashTree)
   t.snapshot(hashTrees)
+
+  const meta = responses.map(({ meta }) => meta)
+  t.snapshot(meta)
 })
 
 // test('it creates an FQL file equivilent to the processed migration in the directory', (t: ExecutionContext) => {})
