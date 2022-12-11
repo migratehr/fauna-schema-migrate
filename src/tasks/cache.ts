@@ -1,54 +1,16 @@
 // Copyright Fauna, Inc.
 // SPDX-License-Identifier: MIT-0
-
-import { isMissingMigrationCollectionFaunaError, isSchemaCachingFaunaError } from '../errors/detect-errors'
-import { prettyPrintExpr } from '../fql/print'
-import {
-  retrieveMigrationInfo,
-  getCurrentAndTargetMigration,
-  generateApplyQuery,
-  retrieveDiffCurrentTarget,
-  retrieveLocalDiffCurrentTarget,
-} from '../migrations/advance'
-import { transformDiffToExpressions } from '../migrations/diff'
-import { clientGenerator } from '../util/fauna-client'
-import { ExpectedNumberOfMigrations } from '../errors/ExpectedNumber'
-import { config } from '../util/config'
-import { printMessage } from '../interactive-shell/shell'
-import boxen from 'boxen'
-import { highlight } from 'cli-highlight'
 import fs from 'fs-extra'
 import path from 'path'
 import fsExists from 'fs.promises.exists'
 import { hashElement, HashElementNode } from 'folder-hash'
 
-import {
-  childDbPathToFullPath,
-  retrieveAllMigrations,
-  retrieveCachedMigrations,
-  writeMigrationToCache,
-} from '../util/files'
-import { evalFQLCode } from '../fql/eval'
-
-interface CacheMetadata {
-  to: string
-  from: string
-  stepSize: number
-}
-
-// On cache size,
-
-// Store cache in
-
-// Stages to tackle
-// 1. Cache from scratch
-// 2. Cache from existing cache
-// 2. Apply reindexing fix
-
-// Cache folder structure
-//
-// <datefrom>-<dateto>-<stepsize>.fql
-// Metadata file:
+import { generateApplyQuery, retrieveLocalDiffCurrentTarget } from '../migrations/advance'
+import { transformDiffToExpressions } from '../migrations/diff'
+import { ExpectedNumberOfMigrations } from '../errors/ExpectedNumber'
+import { config } from '../util/config'
+import { printMessage } from '../interactive-shell/shell'
+import { childDbPathToFullPath, retrieveAllMigrations } from '../util/files'
 
 interface MigrationChunkInfo {
   from?: string
@@ -145,13 +107,11 @@ export const cache =
       return
     }
 
-    const cacheDir = await cfm.getCacheDirectory(atChildDbPath)
-
     if (!(await cfm.existsCacheDirectory(atChildDbPath))) {
       await cfm.makeCacheDirectory(atChildDbPath)
     }
 
-    const cached = await Promise.all(
+    await Promise.all(
       chunks.map(async (chunk) => {
         const hashTree = await hashElement(await cfm.getMigrationsDir(), {
           folders: { include: chunk.migrations.map((migration) => migration.replaceAll(':', '_')) },
@@ -168,8 +128,6 @@ export const cache =
         await cfm.writeCachedMigration(atChildDbPath, chunk, queryString, hashTree)
       })
     )
-
-    return
 
     //   let query: any = null
     //   const client = await clientGenerator.getClient(atChildDbPath)
