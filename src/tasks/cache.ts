@@ -20,7 +20,7 @@ import { highlight } from 'cli-highlight'
 import fs from 'fs-extra'
 import path from 'path'
 import fsExists from 'fs.promises.exists'
-import { hashElement } from 'folder-hash'
+import { hashElement, HashElementNode } from 'folder-hash'
 
 import {
   childDbPathToFullPath,
@@ -85,17 +85,46 @@ const generateLocalSkippedMigration = async (
 }
 
 const cacheFileManager = {
-  getMigrationsDir: async () => {
+  async getMigrationsDir() {
     const migrationsDir = await config.getMigrationsDir()
     return migrationsDir
   },
-  getCacheDirectory: async (atChildDbPath: string[]) => {
+  async getCacheDirectory(atChildDbPath: string[]) {
     const childDbsDir = await config.getChildDbsDirName()
     const migrationsDir = await config.getMigrationsDir()
     const cacheFolderName = await config.getCacheName()
     const fullPath = childDbPathToFullPath(migrationsDir, atChildDbPath, childDbsDir)
     const cacheDir = path.join(fullPath, cacheFolderName)
     return cacheDir
+  },
+  async existsCacheDirectory(atChildDbPath: string[]) {
+    const cacheDir = await this.getCacheDirectory(atChildDbPath)
+    return fsExists(cacheDir)
+  },
+  async makeCacheDirectory(atChildDbPath: string[]) {
+    const cacheDir = await this.getCacheDirectory(atChildDbPath)
+    await fs.promises.mkdir(cacheDir, { recursive: true })
+  },
+  async getCachedMigrationPath(atChildDbPath: string[], { from, target, stepSize }: MigrationChunkInfo) {
+    const cacheDir = await this.getCacheDirectory(atChildDbPath)
+    const cacheFolderName = [from ?? '', target, stepSize].join('_')
+    return path.join(cacheDir, cacheFolderName)
+  },
+  async cachedMigrationExists(atChildDbPath: string[], chunk: MigrationChunkInfo) {
+    return fsExists(await this.getCachedMigrationPath(atChildDbPath, chunk))
+  },
+  async writeCachedMigration(
+    atChildDbPath: string[],
+    chunk: MigrationChunkInfo,
+    fql: string,
+    hashTree: HashElementNode
+  ) {
+    const cacheDir = await this.getCachedMigrationPath(atChildDbPath, chunk)
+    await fs.promises.mkdir(cacheDir, { recursive: true })
+    await Promise.all([
+      fs.promises.writeFile(path.join(cacheDir, 'query.fql'), fql),
+      fs.promises.writeFile(path.join(cacheDir, 'hash-tree.json'), JSON.stringify(hashTree)),
+    ])
   },
 }
 
@@ -118,45 +147,25 @@ export const cache =
 
     const cacheDir = await cfm.getCacheDirectory(atChildDbPath)
 
-    console.log(cacheDir)
-    //   console.log(cachedMigrationDir)
-    if (!(await fsExists(cacheDir))) {
-      console.log('not exists')
-      await fs.promises.mkdir(cacheDir, { recursive: true })
+    if (!(await cfm.existsCacheDirectory(atChildDbPath))) {
+      await cfm.makeCacheDirectory(atChildDbPath)
     }
 
     const cached = await Promise.all(
       chunks.map(async (chunk) => {
-        const cacheFolderName = [chunk.from ?? '', chunk.target, chunk.stepSize].join('_')
-
-        // console.log('migrations: ', chunk.migrations)
-
-        // Get hashTree of the migration folder
         const hashTree = await hashElement(await cfm.getMigrationsDir(), {
           folders: { include: chunk.migrations.map((migration) => migration.replaceAll(':', '_')) },
         })
 
-        console.log(hashTree)
-
-        const chunkCacheDir = path.join(cacheDir, cacheFolderName)
-        console.log(chunkCacheDir)
-        if (await fsExists(chunkCacheDir)) {
-          console.log('exists')
+        if (await cfm.cachedMigrationExists(atChildDbPath, chunk)) {
           // Check the checksum of the cached migration against the current migration
           // If they match, then we can use the cached migration
           // If they don't match, then we need to regenerate the cached migration
           return
         }
 
-        console.log('not exists')
-        console.log(chunkCacheDir)
-        await fs.promises.mkdir(chunkCacheDir, { recursive: true })
-        const FQLQuery = (await generateLocalSkippedMigration(atChildDbPath, chunk)).toFQL()
-
-        await Promise.all([
-          fs.promises.writeFile(path.join(chunkCacheDir, 'query.fql'), FQLQuery),
-          fs.promises.writeFile(path.join(chunkCacheDir, 'hash-tree.json'), JSON.stringify(hashTree)),
-        ])
+        const queryString = (await generateLocalSkippedMigration(atChildDbPath, chunk)).toFQL()
+        await cfm.writeCachedMigration(atChildDbPath, chunk, queryString, hashTree)
       })
     )
 
