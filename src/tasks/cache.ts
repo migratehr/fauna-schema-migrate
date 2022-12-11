@@ -46,7 +46,7 @@ const generateLocalSkippedMigration = async (
   return await generateApplyQuery(expressions, skipped, target, migrCollection)
 }
 
-const cacheFileManager = {
+export const cacheFileManager = {
   async getMigrationsDir() {
     const migrationsDir = await config.getMigrationsDir()
     return migrationsDir
@@ -90,7 +90,7 @@ const cacheFileManager = {
   },
 }
 
-type CacheFileManager = typeof cacheFileManager
+export type CacheFileManager = typeof cacheFileManager
 
 export const cache =
   (cfm: CacheFileManager = cacheFileManager) =>
