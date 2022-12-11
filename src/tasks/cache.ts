@@ -75,12 +75,19 @@ export const cacheFileManager = {
   async cachedMigrationExists(atChildDbPath: string[], chunk: MigrationChunkInfo) {
     return fsExists(await this.getCachedMigrationPath(atChildDbPath, chunk))
   },
+  async getCachedMigrationHash(atChildDbPath: string[], chunk: MigrationChunkInfo) {
+    const cacheDir = await this.getCachedMigrationPath(atChildDbPath, chunk)
+    const hashTreePath = path.join(cacheDir, 'hash-tree.json')
+    return JSON.parse(await fs.promises.readFile(hashTreePath, 'utf-8')).hash as string
+  },
+
   async writeCachedMigration(
     atChildDbPath: string[],
     chunk: MigrationChunkInfo,
     fql: string,
     hashTree: HashElementNode
   ) {
+    console.log(chunk)
     const cacheDir = await this.getCachedMigrationPath(atChildDbPath, chunk)
     await fs.promises.mkdir(cacheDir, { recursive: true })
     await Promise.all([
@@ -111,23 +118,59 @@ export const cache =
       await cfm.makeCacheDirectory(atChildDbPath)
     }
 
-    await Promise.all(
+    const responses = await Promise.all(
       chunks.map(async (chunk) => {
         const hashTree = await hashElement(await cfm.getMigrationsDir(), {
           folders: { include: chunk.migrations.map((migration) => migration.replaceAll(':', '_')) },
         })
 
         if (await cfm.cachedMigrationExists(atChildDbPath, chunk)) {
-          // Check the checksum of the cached migration against the current migration
-          // If they match, then we can use the cached migration
-          // If they don't match, then we need to regenerate the cached migration
-          return
+          const cachedHash = await cfm.getCachedMigrationHash(atChildDbPath, chunk)
+          if (cachedHash !== hashTree.hash) {
+            return {
+              chunk,
+              action: 'invalid_checksum',
+            }
+          }
+
+          return {
+            chunk,
+            action: 'exists',
+          }
         }
 
         const queryString = (await generateLocalSkippedMigration(atChildDbPath, chunk)).toFQL()
         await cfm.writeCachedMigration(atChildDbPath, chunk, queryString, hashTree)
+        return {
+          chunk,
+          action: 'generated',
+        }
       })
     )
+
+    // Regenerage queries and hashes for all chunks after the first `action: 'invalid_checksum'` chunk.
+    const firstInvalidChecksumIndex = responses.findIndex((response) => response.action === 'invalid_checksum')
+    if (firstInvalidChecksumIndex !== -1) {
+      const chunksToRegenerate = responses.slice(firstInvalidChecksumIndex).map((response) => response.chunk)
+      const responsesToRegenerate = await Promise.all(
+        chunksToRegenerate.map(async (chunk) => {
+          const hashTree = await hashElement(await cfm.getMigrationsDir(), {
+            folders: { include: chunk.migrations.map((migration) => migration.replaceAll(':', '_')) },
+          })
+
+          const queryString = (await generateLocalSkippedMigration(atChildDbPath, chunk)).toFQL()
+          await cfm.writeCachedMigration(atChildDbPath, chunk, queryString, hashTree)
+          return {
+            chunk,
+            action: 'regenerated',
+          }
+        })
+      )
+
+      return [...responses.slice(0, firstInvalidChecksumIndex), ...responsesToRegenerate]
+    }
+
+    return responses
 
     //   let query: any = null
     //   const client = await clientGenerator.getClient(atChildDbPath)

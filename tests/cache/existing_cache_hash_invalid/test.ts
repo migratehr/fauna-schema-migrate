@@ -3,7 +3,7 @@
 
 import path from 'path'
 import test, { ExecutionContext } from 'ava'
-import fs from 'fs'
+import fs from 'fs-extra'
 import { Config } from '../../../src/util/config'
 import sinon from 'sinon'
 import { cache, CacheFileManager, cacheFileManager } from '../../../src/tasks/cache'
@@ -11,6 +11,7 @@ import fsExists from 'fs.promises.exists'
 
 const CACHE_DIR = '.cache'
 const testPath = path.relative(process.cwd(), __dirname)
+const invalidCachePath = path.join(testPath, 'invalid_cache')
 const migrationsPath = path.join(testPath, 'migrations')
 const cachePath = path.join(migrationsPath, CACHE_DIR)
 
@@ -22,6 +23,9 @@ test.before(async (t: ExecutionContext) => {
     .stub(Config.prototype, 'getMigrationsDir')
     .returns(Promise.resolve(path.join(testPath, 'migrations')))
   cacheNameStub = sinon.stub(Config.prototype, 'getCacheName').returns(Promise.resolve(CACHE_DIR))
+
+  await fs.promises.rmdir(cachePath, { recursive: true })
+  await fs.copy(invalidCachePath, cachePath)
 })
 
 test.after(async (t: ExecutionContext) => {
@@ -29,8 +33,8 @@ test.after(async (t: ExecutionContext) => {
   cacheNameStub.restore()
 })
 
-test('when step size is 1, it should not alter cache or write new cache objects', async (t: ExecutionContext) => {
-  const writeCachedMigration = sinon.stub()
+test('when step size is 1, it should recreate all cached migrations from the invalid hash point', async (t: ExecutionContext) => {
+  const writeCachedMigration = sinon.spy({ ...cacheFileManager }, 'writeCachedMigration')
 
   const cfm: CacheFileManager = {
     ...cacheFileManager,
@@ -90,11 +94,35 @@ test('when step size is 1, it should not alter cache or write new cache objects'
   const hashTrees = responses.map(({ hashTree }) => hashTree)
   t.snapshot(hashTrees)
 
-  t.is(writeCachedMigration.callCount, 0, 'writeCachedMigration was not called')
+  t.is(
+    writeCachedMigration.calledWith(
+      sinon.match.any,
+      sinon.match({
+        from: '2022-12-08T19:45:58.691Z',
+        target: '2022-12-08T19:45:58.699Z',
+      }),
+      sinon.match.any,
+      sinon.match.any
+    ),
+    true
+  )
+
+  t.is(
+    writeCachedMigration.calledWith(
+      sinon.match.any,
+      sinon.match({
+        from: '2022-12-08T19:45:58.699Z',
+        target: '2022-12-08T19:45:58.706Z',
+      }),
+      sinon.match.any,
+      sinon.match.any
+    ),
+    true
+  )
 })
 
 test('when step size is more than 1, it should create the correct folder and query', async (t: ExecutionContext) => {
-  const writeCachedMigration = sinon.stub()
+  const writeCachedMigration = sinon.spy({ ...cacheFileManager }, 'writeCachedMigration')
 
   const cfm: CacheFileManager = {
     ...cacheFileManager,
@@ -142,5 +170,16 @@ test('when step size is more than 1, it should create the correct folder and que
   const hashTrees = responses.map(({ hashTree }) => hashTree)
   t.snapshot(hashTrees)
 
-  t.is(writeCachedMigration.callCount, 0, 'writeCachedMigration was not called')
+  t.is(
+    writeCachedMigration.calledWith(
+      sinon.match.any,
+      sinon.match({
+        from: '2022-12-08T19:45:58.691Z',
+        target: '2022-12-08T19:45:58.706Z',
+      }),
+      sinon.match.any,
+      sinon.match.any
+    ),
+    true
+  )
 })
