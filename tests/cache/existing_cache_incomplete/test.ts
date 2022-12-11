@@ -152,4 +152,19 @@ test('when step size is more than 1, it should create the correct folder and que
   t.snapshot(hashTrees)
 
   t.is(writeCachedMigration.callCount, 1, 'writeCachedMigration was not called')
+
+  const expectedDeleted = [
+    {
+      directoryName: '2022-12-08T19:45:58.691Z_2022-12-08T19:45:58.706Z_3',
+      includedMigrations: ['2022-12-08T19_45_58.699Z', '2022-12-08T19_45_58.706Z'],
+    },
+  ]
+
+  // Check that preexisting incomplete cache entries for the step size are removed
+  await Promise.all(
+    expectedDeleted.map(async ({ directoryName }) => {
+      const dirPath = path.join(cachePath, directoryName)
+      t.is(await fsExists(dirPath), false, 'Has directory')
+    })
+  )
 })

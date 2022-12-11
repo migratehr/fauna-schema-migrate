@@ -94,6 +94,11 @@ export const cacheFileManager = {
       fs.promises.writeFile(path.join(cacheDir, 'hash-tree.json'), JSON.stringify(hashTree)),
     ])
   },
+
+  async removeCachedMigration(atChildDbPath: string[], chunk: MigrationChunkInfo) {
+    const cacheDir = await this.getCachedMigrationPath(atChildDbPath, chunk)
+    await fs.promises.rmdir(cacheDir, { recursive: true })
+  },
 }
 
 export type CacheFileManager = typeof cacheFileManager
