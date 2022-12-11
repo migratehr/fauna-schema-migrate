@@ -1,0 +1,9 @@
+CreateRole({
+  "name": "test_role_3",
+  "privileges": {
+    "resource": Index("test_index"),
+    "actions": {
+      "read": true
+    }
+  }
+})

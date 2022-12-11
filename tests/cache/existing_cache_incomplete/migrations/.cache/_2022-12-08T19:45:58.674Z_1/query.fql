@@ -1,0 +1,1 @@
+Let([{"var0": Select(["ref"], CreateCollection({"name": "test"}))}, {"var1": Select(["ref"], CreateIndex({"name": "test_index"}))}], Map(["2022-12-08T19:45:58.674Z"], Lambda("migration", Create(Collection("migrations"), {"data": {"migration": Var("migration")}}))))

@@ -1,0 +1,1 @@
+Let([{"var0": Select(["ref"], CreateRole({"name": "test_role_2", "privileges": {"resource": Index("test_index"), "actions": {"read": true}}}))}], Map(["2022-12-08T19:45:58.706Z"], Lambda("migration", Create(Collection("migrations"), {"data": {"migration": Var("migration")}}))))
