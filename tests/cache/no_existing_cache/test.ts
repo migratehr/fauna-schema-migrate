@@ -73,9 +73,8 @@ test('when step size is 1, it should create the correct folder and query', async
       const queryPath = path.join(dirPath, 'query.fql')
       const query = await fs.promises.readFile(queryPath, 'utf8')
 
-      const hashTree = await hashElement(path.join(migrationsPath), {
-        folders: { include: includedMigrations },
-      })
+      const hashTreePath = path.join(dirPath, 'hash-tree.json')
+      const hashTree = await fs.promises.readFile(hashTreePath, 'utf8')
 
       console.log(hashTree.toString())
 
