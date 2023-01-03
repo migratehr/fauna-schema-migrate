@@ -1,0 +1,5 @@
+Update(Role("test_role_2"), {
+  "privileges": {},
+  "data": null,
+  "membership": null
+})

@@ -4,6 +4,7 @@ import fs from 'fs-extra'
 import path from 'path'
 import fsExists from 'fs.promises.exists'
 import { hashElement, HashElementNode } from 'folder-hash'
+import lockfile from 'proper-lockfile'
 
 import { generateApplyQuery, retrieveLocalDiffCurrentTarget } from '../migrations/advance'
 import { transformDiffToExpressions } from '../migrations/diff'
@@ -12,12 +13,13 @@ import { config } from '../util/config'
 import { printMessage } from '../interactive-shell/shell'
 import { childDbPathToFullPath, retrieveAllMigrations } from '../util/files'
 
-interface MigrationChunkInfo {
+export interface MigrationChunkInfo {
   from?: string
   target: string
   stepSize: number
   migrations: string[]
   isComplete: boolean
+  isOptimised?: boolean
 }
 
 function getMigrationChunkInfo(migrationArray: string[], chunk_size: number) {
@@ -67,6 +69,7 @@ export const cacheFileManager = {
     const cacheDir = await this.getCacheDirectory(atChildDbPath)
     await fs.promises.mkdir(cacheDir, { recursive: true })
   },
+
   async getCachedMigrationPath(atChildDbPath: string[], { from, target, stepSize }: MigrationChunkInfo) {
     const cacheDir = await this.getCacheDirectory(atChildDbPath)
     const cacheFolderName = [from ?? '', target, stepSize].join('_')
@@ -79,6 +82,11 @@ export const cacheFileManager = {
     const cacheDir = await this.getCachedMigrationPath(atChildDbPath, chunk)
     const hashTreePath = path.join(cacheDir, 'hash-tree.json')
     return JSON.parse(await fs.promises.readFile(hashTreePath, 'utf-8')).hash as string
+  },
+
+  async readCachedMigrationFQL(atChildDbPath: string[], chunk: MigrationChunkInfo) {
+    const cacheDir = await this.getCachedMigrationPath(atChildDbPath, chunk)
+    return await fs.promises.readFile(path.join(cacheDir, 'query.fql'), 'utf-8')
   },
 
   async writeCachedMigration(
@@ -94,6 +102,26 @@ export const cacheFileManager = {
       fs.promises.writeFile(path.join(cacheDir, 'hash-tree.json'), JSON.stringify(hashTree)),
       fs.promises.writeFile(path.join(cacheDir, 'meta.json'), JSON.stringify(chunk)),
     ])
+  },
+
+  async optimiseCachedMigrationFQL(atChildDbPath: string[], chunk: MigrationChunkInfo, fql: string) {
+    const cacheDir = await this.getCachedMigrationPath(atChildDbPath, chunk)
+    const filepath = path.join(cacheDir, 'query.fql')
+
+    const release = await lockfile.lock(filepath)
+    await Promise.all([
+      fs.promises.writeFile(filepath, fql),
+      fs.promises.writeFile(
+        path.join(cacheDir, 'meta.json'),
+        JSON.stringify({
+          ...chunk,
+          // TODO: Include better optimisation records
+          isOptimised: true,
+        })
+      ),
+    ])
+
+    await release()
   },
 
   async removeCachedMigration(atChildDbPath: string[], chunk: MigrationChunkInfo) {

@@ -143,7 +143,7 @@ Or run `npx fauna-schema-migrate run` to test it out interactively. All commands
 
 4. **Verify the migration**
 
-   The tool is still in beta and relies heavily on comparison of FQL json formats. It has been tested in several advanced scenarios. When you start using it early on. Verify whether the migration results are correct in the migrations folder. The migration folder will contain different migrations folders with a timestamp as name. Each generated migration contains an .fql file for each resource that was created/updated/deleted. Below is an example structure: 
+   The tool is still in beta and relies heavily on comparison of FQL json formats. It has been tested in several advanced scenarios. When you start using it early on. Verify whether the migration results are correct in the migrations folder. The migration folder will contain different migrations folders with a timestamp as name. Each generated migration contains an .fql file for each resource that was created/updated/deleted. Below is an example structure:
 
    ```
    fauna > migrations > 2021-01-25T20:49:16.074Z > create-collection-accounts.fql
@@ -193,7 +193,7 @@ Or run `npx fauna-schema-migrate run` to test it out interactively. All commands
 - FAUNADB_SCHEME: the default schema is 'https', mainly for local development, this could be set to 'http' via this environment variable
 - FAUNADB_PORT: the default port is 443, for local development with a docker image you'll need to override this.
 
-##### Faster local development with a child database 
+##### Faster local development with a child database
 
 One of the parameters, FAUNA_CHILD_DB is useful in development in case you often find yourself completely nuking the database and reapply everything from scratch. In that case, you might bump into the cache which requires you to wait for 60 seconds before recreating the resources. FAUNA_CHILD_DB will create your resources in a child database instead of in the database that the admin key points at. When using FAUNA_CHILD_DB and rolling back before the first transactions (e.g. with `npx fauna-schema-migrate rollback all`) the rollback will nuke the database instead of applying the rollback which essentially avoids the 60 seconds cache.
 
@@ -255,7 +255,7 @@ These are some extensive notes on why the tool is designed as it is.
 The FaunaDB Query Language (FQL) is very different than other query languages like SQL, Cypher or ORM approaches. One of the features that are worth embracing in FQL is that writing FQL queries is essentially function composition. For example:
 
 ```javascript
-Collection("accounts")
+Collection('accounts')
 ```
 
 is just a reference to a collection. Throw that in another function to get a reference to a document within that collection.
@@ -375,3 +375,7 @@ This library was inspired by excellent database libraries and efforts of communi
 - https://github.com/Plazide/fauna-gql-upload
 
 - https://github.com/ptpaterson/faunadb-graphql-schema-loader
+
+## TODO:
+
+- Warn / fail fast on recreation of previously deleted index / collection (poor optimisation)
